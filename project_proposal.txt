@@ -18,7 +18,9 @@ The trickiest parts of my project will be:
 1. Creating and keeping track of multiple lights, and recording cues/sequences out of these. 
 2. Getting accurate hand positions from the Leap Motion and converting to intensity, color, and position.
 
-I will have a Light class, and several classes that inherit from those. Then, I'll have either a set or dictionary of all the lights and their attributes. 
+I will have a Light class, and several classes that inherit from those. Then, I'll have a dictionary of all the lights and their attributes. This way, I can change the values of one light without impacting the rest. To record sequences, I will store the information on position/color/intensity of lights by writing it to a file, and hopefully storing it in my showfile on the lighting console. If I wanted to store sequences for two lights at once, and I had recorded them separately, I can put them together by "interweaving."
+
+I will get position and angle data from the Leap Motion, and convert this to pan and tilt, most likely with a lot of trigonometry. Since positions on the lights can often be accessed by multiple pan/tilt values, I'll then calculate which position is the closest to the current position, and move there. It also may be challenging to figure out exactly how to detect certain motions on the Leap Motion, but I may be able to find resources online for this.
 
 Timeline Plan:
 4/14 - Ability to control intensity and color of intelligent lights
@@ -40,10 +42,5 @@ Leap Motion - This uses infrared light to detect hand position.
 
 
 ##### Notes #####
-
-Write macros:
-store cue
-fader pg +
-fader pg -
 
 Put color/pos/intensity faders on each of these pages and swap pages to switch between lights

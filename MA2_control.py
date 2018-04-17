@@ -1,8 +1,10 @@
-import time
 import rtmidi
-import leap_sensing
 from lights import *
 from Tkinter import *
+from leap_sensing import *
+import sys, thread, time
+sys.path.insert(0, "../LeapDeveloperKit_2.3.1+31549_mac/LeapSDK/lib")
+import Leap
 
 midiout = rtmidi.MidiOut()
 available_ports = midiout.get_ports()
@@ -16,15 +18,15 @@ else:
 
 def init(data):
     data.midiout = midiout
-    data.lights = set()
-    leap_sensing.init(data)
+    data.lights = dict()
+    LeapHand.init(LeapHand, data)
     data.step = 1
     data.dim = False
-    data.lights.add(Moving(1))
-    data.lights.add(Moving(2))
+    data.lights[1] = Moving()
+    data.lights[2] = Moving()
     data.whichLight = 1
 
-def mousePressed(event, data):
+def mousePressed(event, data): # switch between lights
     fd_plus = [0x91, 1, 127]
     fd_minus = [0x91, 2, 127]
     if data.whichLight == 1:
@@ -34,30 +36,28 @@ def mousePressed(event, data):
         data.whichLight = 1
         data.midiout.send_message(fd_minus)
 
-def allOff(data):
-    for light in data.lights:
+def allOff(data): # turn all lights off
+    for i in data.lights:
+        light = data.lights[i]
         light.color = [0, 0, 0]
         light.intensity = 0
         light.position = [0, 0]
 
 def keyPressed(event, data):
-    if event.char == 'i':
-        for light in data.lights:
-            if light.channel == data.whichLight:
-                if light.intensity >= 127:
-                    light.intensity = 127
-                else:
-                    light.intensity += 16
-    pos = ['p','t']
+    light = data.lights[data.whichLight]
+    if event.char == 'i': # intensity 
+        if light.intensity >= 127:
+            light.intensity = 127
+        else:
+            light.intensity += 16
+    pos = ['p','t'] # pan, tilt
     for i in range(2):
         if event.char == pos[i]:
-            for light in data.lights:
-                if light.channel == data.whichLight:
-                    if light.position[i] >= 111:
-                        light.position[i] = 127
-                    else:
-                        light.position[i] += 16
-    if event.keysym == 'space':
+            if light.position[i] >= 111:
+                light.position[i] = 127
+            else:
+                light.position[i] += 16
+    if event.keysym == 'space': # clear
         allOff(data)
     elif event.char == 'd':
         data.dim = not data.dim
@@ -68,25 +68,25 @@ def keyPressed(event, data):
     sendToLights(data)
 
 def sendToLights(data):
-    for light in data.lights:
-        if light.channel == data.whichLight:
-            f1 = [0x90, 60, light.intensity] # channel 1, middle C, velocity 127
-            f2 = [0x90, 61, light.position[0]]
-            f3 = [0x90, 62, light.position[1]]
-            data.midiout.send_message(f1)
-            data.midiout.send_message(f2)
-            data.midiout.send_message(f3)
-
-def f():
-    pass
+    for i in data.lights:
+        light = data.lights[data.whichLight]
+        f1 = [0x90, 60, light.intensity] # channel 1, middle C, velocity 127
+        f2 = [0x90, 61, light.position[0]]
+        f3 = [0x90, 62, light.position[1]]
+        data.midiout.send_message(f1)
+        data.midiout.send_message(f2)
+        data.midiout.send_message(f3)
 
 def timerFired(data):
-    # if leap_sensing.isPointing(data):
-    if data.dim:
-        for light in data.lights:
-            if light.intensity >= 127 or light.intensity <= 0:
-                data.moveRight = not data.moveRight
-            if data.moveRight:
+    if LeapHand.isPointing(LeapHand, data):
+    # if data.dim: This is the replacement in case Leap Motion doesn't work
+        for i in data.lights:
+            light = data.lights[i]
+            if light.intensity >= 127:
+                data.increasing = False
+            elif light.intensity <= 0:
+                data.increasing = True
+            if data.increasing:
                 light.intensity += data.step
             elif light.intensity <= 1:
                 light.intensity = 0
@@ -97,9 +97,10 @@ def timerFired(data):
 
 
 def redrawAll(canvas, data):
-    for light in data.lights:
+    for i in data.lights:
+        light = data.lights[i]
         offset = 0
-        if light.channel == 2:
+        if i == 2:
             offset = 50
         canvas.create_text(data.width/2, data.height/2 + offset, \
             text='intensity: ' + str(light.intensity) + 
@@ -109,6 +110,7 @@ def redrawAll(canvas, data):
 
 ####################################
 
+# from 112 course notes
 def run(width=300, height=300):
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
