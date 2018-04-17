@@ -1,0 +1,49 @@
+15-112 Term Project
+Ariel Uy (auy)
+Spring 2018
+
+Project Description:
+My term project will be a way to do theatrical lighting control using a Leap Motion. Users can move their hands to select different lights, and change the intensity, color, and position of lights. In addition, there will be a way to control multiple lights at once, and store cues to play back later. This will be implemented via the grandMA2 lighting console and software.
+
+Competitive Analysis:
+A related project to this was done in 15-112 Spring 2016 by Kenny Cohen (https://www.youtube.com/watch?v=ZT2LsBX20ME), which had a lot of similar features, such as controlling light intensity, color, and position. However, this project is fairly different from mine. Kenny's project was a standalone system, where he outputted DMX from a computer, whereas I am sending signals to a grandMA2 console, with the intention of this being an add-on. Also, a main feature of my project is control with Leap Motion, and Kenny's project was controlled with a mouse and keyboard. 
+
+Another similar project done with Leap Motion is a "Smart House" (http://blog.leapmotion.com/video-smart-house-experiment-controlling-light-with/) where colored house lights from Philips are controlled with hand motions. This project has given me ideas on what hand motions could be good for controlling different features. This is the same idea as my project, but my project will implement this in a theatrical setting, rather than in a house. The Philips lights can change color, but I will also have more complicated controls such as position and effects, and many different types of lights.
+
+Structural Plan:
+There will be a file that does the Leap Motion sensing, and determines hand position. There will be another file for lighting control and MIDI output. In addition, there is a file that creates classes for the types of lights, that is used in the lighting control file. The main file will call the leap motion file to get hand position, then call the lighting control file to change the lights.
+
+Algorithmic Plan:
+The trickiest parts of my project will be: 
+1. Creating and keeping track of multiple lights, and recording cues/sequences out of these. 
+2. Getting accurate hand positions from the Leap Motion and converting to intensity, color, and position.
+
+I will have a Light class, and several classes that inherit from those. Then, I'll have either a set or dictionary of all the lights and their attributes. 
+
+Timeline Plan:
+4/14 - Ability to control intensity and color of intelligent lights
+4/17 - Basic control of lights through Leap Motion, ability to change position of moving lights, control multiple lights by switching between them
+4/22 - Get position information of a pointed finger from Leap Motion, use this to control positions of moving lights, store cues involving multiple lights
+4/25 - Control as much as possible from the Leap Motion, ideally be able to select lights, change color, intensity, position, and store sequences. Have a reasonably functional UI to go along with this.
+4/29 - Implement effects like strobe and chases. Finish any incomplete features, fix any bugs. Add bonus features like a small game if there's time.
+5/3 - Have a final product with a good UI. Clean up code.
+
+Version Control:
+I am using GitHub as version control for my python files. I am backing up my grandMA2 showfile on a flash drive.
+
+Module List:
+rtmidi - This allows python to send MIDI messages.
+Leap Motion - This uses infrared light to detect hand position.
+
+
+
+
+
+##### Notes #####
+
+Write macros:
+store cue
+fader pg +
+fader pg -
+
+Put color/pos/intensity faders on each of these pages and swap pages to switch between lights
