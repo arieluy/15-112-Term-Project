@@ -20,9 +20,25 @@ class LeapHand(object):
         data.pointing = True
         for hand in data.frame.hands:
             for finger in hand.fingers:
-                print data.fingerNames[finger.type], finger.direction[1]
+                print data.fingerNames[finger.type], finger.direction
                 if data.fingerNames[finger.type] == 'Index' and not(-0.3 < finger.direction[1] < 0.3):
                     data.pointing = False
                 elif data.fingerNames[finger.type] in ['Ring', 'Middle', 'Pinky'] and finger.direction[1] > 0.1:
                     data.pointing = False
         return data.pointing
+
+    @staticmethod
+    def indexDirection(self, data):
+        data.frame = data.controller.frame()
+        for hand in data.frame.hands:
+            for finger in hand.fingers:
+                if finger.type == 1:
+                    return finger.direction
+
+    @staticmethod
+    def isHand(self, data):
+        data.frame = data.controller.frame()
+        for hand in data.frame.hands:
+            return True
+        return False        
+

@@ -1,5 +1,5 @@
 import time
-import rtmidi
+import rtmidi # from https://github.com/gostopa1/BachMC/blob/master/RunRealtime_dur_amp.py
 from Tkinter import *
 
 midiout = rtmidi.MidiOut()

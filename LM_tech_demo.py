@@ -61,7 +61,7 @@ def redrawAll(canvas, data):
 
 ####################################
 
-
+# from 112 course notes
 def run(width=300, height=300):
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
