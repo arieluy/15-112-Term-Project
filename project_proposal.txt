@@ -37,10 +37,13 @@ Module List:
 rtmidi - This allows python to send MIDI messages.
 Leap Motion - This uses infrared light to detect hand position.
 
+#### TP2 Update ####
 
-
-
+No updates.
 
 ##### Notes #####
 
 Put color/pos/intensity faders on each of these pages and swap pages to switch between lights
+Switch between lights with LM, make buttons for selecting which light, and having attribute buttons show up based on type
+Calculate possible/best positions of MLs
+Record cues both with 'store cue' and writing to a file

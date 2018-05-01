@@ -8,9 +8,15 @@ def writeFile(path, contents):
         f.write(contents)
 
 
-store = [0x92, 1, 127] # runs the 'store' command on grandMA2
+'''store = [0x91, 3, 127] # runs the 'store' command on grandMA2
 
-def storeCue():
-    data.midiout.send_message(store)
+def storeCue(data):
+    data.midiout.send_message(store)'''
+
+
+sequence = ''
+for m in msg:
+    sequence += str(m) + '\n'
+    sequence += 'time.sleep(%d)' % sleepTime
 
 

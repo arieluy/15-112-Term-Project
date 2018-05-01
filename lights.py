@@ -16,7 +16,7 @@ class Intelligent(Light):
         self.color = [0, 0, 0] # red, green, blue
 
     def changeColor(self, newColor):
-        self.Color = newColor
+        self.color = newColor
 
 
 
@@ -24,6 +24,8 @@ class Moving(Intelligent):
     def __init__(self):
         super(Moving, self).__init__()
         self.position = [0, 0] # pan, tilt
+        # pan has a domain of [-270, 270]
+        # tilt has a domain of [-135, 135]
 
     def changePosition(self, newPosition):
         self.position = newPosition

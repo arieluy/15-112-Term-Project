@@ -1,4 +1,4 @@
-
+# from 112 course notes
 import os, sys, inspect, thread, time
 sys.path.insert(0, "../LeapDeveloperKit_2.3.1+31549_mac/LeapSDK/lib")
 

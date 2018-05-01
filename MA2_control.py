@@ -3,9 +3,11 @@ import rtmidi # from https://github.com/gostopa1/BachMC/blob/master/RunRealtime_
 from lights import *
 from Tkinter import *
 from leap_sensing import *
+from store_cues import *
+from calculations import *
 import sys, thread, time, math
 sys.path.insert(0, "../LeapDeveloperKit_2.3.1+31549_mac/LeapSDK/lib")
-import Leap
+import Leap # https://developer.leapmotion.com/sdk/v2/
 
 midiout = rtmidi.MidiOut()
 available_ports = midiout.get_ports()
@@ -16,9 +18,8 @@ else:
     midiout.open_virtual_port("My virtual output")
     print "Virtual port opened"
 
-
-
-class Button(object):
+# wanted to put this in a separate file but couldn't get the import to work
+class Button(object): 
     def __init__(self, x1, y1, x2, y2, label):
         self.x1 = x1
         self.y1 = y1
@@ -43,15 +44,18 @@ class Button(object):
         else:
             return False
 
+#####################################################
+
 def init(data):
     data.midiout = midiout
     data.lights = dict()
     LeapHand.init(LeapHand, data)
     data.step = 1
     data.dim = False
-    data.lights[1] = Moving()
+    data.lights[1] = Light()
     data.lights[2] = Moving()
-    data.currentLight = 1
+    data.lights[3] = Intelligent()
+    data.currentLight = 2
     data.selection = None # keeps track of which attribute is selected
     data.timesFired = 0
     intButton = Button(20, 20, 100, 50, 'intensity')
@@ -64,12 +68,12 @@ def mousePressed(event, data):
         if button.isClicked(event):
             button.changeFill('yellow')
             data.selection = str(button)
-            print(data.selection)
         else:
             button.changeFill('white')
 
 
-'''# switch between lights
+''' # need to work on this feature more
+    # switch between lights
     fd_plus = [0x91, 1, 127]
     fd_minus = [0x91, 2, 127]
     if data.currentLight == 1:
@@ -86,6 +90,7 @@ def allOff(data): # turn all lights off
         light.intensity = 0
         light.position = [0, 0]
 
+# gives an alternate way to control the lights besides LeapMotion
 def keyPressed(event, data):
     light = data.lights[data.currentLight]
     if event.char == 'i': # intensity
@@ -100,6 +105,9 @@ def keyPressed(event, data):
                 light.position[i] = 127
             else:
                 light.position[i] += 16
+    if event.keysym == 's':
+        print 'store'
+        storeCue(data)
     if event.keysym == 'space': # clear
         allOff(data)
     elif event.char == 'd':
@@ -112,34 +120,42 @@ def keyPressed(event, data):
 
 def sendToLights(data):
     light = data.lights[data.currentLight]
-    f1 = [0x90, 60, light.intensity] # channel 1, middle C, velocity 127
-    f2 = [0x90, 61, light.position[0]]
-    f3 = [0x90, 62, light.position[1]]
-    data.midiout.send_message(f1)
-    data.midiout.send_message(f2)
-    data.midiout.send_message(f3)
+    print data.selection == 'intensity'
+    if data.selection == 'intensity':
+        msg = [[0x90, 1, light.intensity]]
+    elif data.selection == 'color' and isinstance(light, Intelligent):
+        msg = [[0x90, 2, light.color[0]], [0x90, 3, light.color[1]], [0x90, 4, light.color[2]]]
+    elif data.selection == 'position' and isinstance(light, Moving):
+        tilt = int(128*(light.position[1] + 135)/270)
+        pan = int(128*(light.position[0] + 270)/540)
+        msg = [[0x90, 5, pan], [0x90, 6, tilt]]
+    else:
+        msg = []
+    print msg
+    for m in msg:
+        data.midiout.send_message(m)
 
-def getPossiblePositions(pos):
-    x = pos[0]
-    y = pos[1]
-    z = pos[2]
-    theta = math.acos(y/(math.sqrt(x**2 + y**2 + z**2)))
-    phi = math.atan2(x, z)
-    tilt = int(128*(theta/math.pi))
-    pan = int(64*(phi/math.pi + 1))
-    return [pan, tilt]
 
 def timerFired(data):
     data.timesFired += 1
     light = data.lights[data.currentLight]
-    if data.timesFired % 10 == 0:
-        if isinstance(light, Intelligent) and LeapHand.isHand(LeapHand, data):
+    if data.timesFired % 5 == 0 and LeapHand.isHand(LeapHand, data):
+        if data.selection == 'intensity':
+            distance = LeapHand.handDistance(LeapHand, data)[1]
+            intensity = getIntensityFromDistance(distance)
+            light.changeIntensity(intensity)
+        elif data.selection == 'color' and isinstance(light, Intelligent):
+            tilt = LeapHand.handTilt(LeapHand, data)
+            color = getColorFromTilt(tilt)
+            light.changeColor(color)
+            print color
+        elif data.selection == 'position' and isinstance(light, Moving):
             pos = LeapHand.indexDirection(LeapHand, data)
             lst = getPossiblePositions(pos)
-            # find best position
-            light.changePosition(lst)
-        print LeapHand.indexDirection(LeapHand, data)
-    # if LeapHand.isPointing(LeapHand, data):
+            pt = getPanTilt(lst, light.position) # find best position
+            light.changePosition(pt)
+        # print LeapHand.indexDirection(LeapHand, data)
+    
     if data.dim: # This is the replacement in case Leap Motion doesn't work
         for i in data.lights:
             light = data.lights[i]
@@ -153,7 +169,8 @@ def timerFired(data):
                 light.intensity = 0
             else:
                 light.intensity -= data.step
-    sendToLights(data)
+    if data.timesFired % 20 == 0:
+        sendToLights(data)
 
 
 
@@ -162,12 +179,13 @@ def redrawAll(canvas, data):
         button.draw(canvas)
     for i in data.lights:
         light = data.lights[i]
-        offset = 0
-        if i == 2:
-            offset = 50
-        canvas.create_text(data.width/2, data.height/2 + offset, \
-            text='intensity: ' + str(light.intensity) + 
-                '  pan: ' + str(light.position[0]) + '  tilt: ' + str(light.position[1]))
+        offset = 50*(i-1)
+        capt = 'intensity: %d' % (light.intensity)
+        if isinstance(light, Intelligent):
+            capt += ' color: (%d, %d, %d)' % (light.color[0], light.color[1], light.color[2])
+        if isinstance(light, Moving):
+            capt += ' pan: %d tilt: %d' % (light.position[0], light.position[1])
+        canvas.create_text(data.width/2, data.height/2 + offset, text=capt)
 
 
 

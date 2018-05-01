@@ -1,4 +1,4 @@
-# Some code from Leap Motion sample files
+# Some code from Leap Motion sample files https://developer.leapmotion.com/sdk/v2/
 # Also from 112 starter code
 
 import sys, thread, time
