@@ -5,6 +5,7 @@ from Tkinter import *
 from leap_sensing import *
 from store_cues import *
 from calculations import *
+import MySequence1
 import sys, thread, time, math
 sys.path.insert(0, "../LeapDeveloperKit_2.3.1+31549_mac/LeapSDK/lib")
 import Leap # https://developer.leapmotion.com/sdk/v2/
@@ -62,6 +63,9 @@ def init(data):
     colButton = Button(120, 20, 200, 50, 'color')
     posButton = Button(220, 20, 300, 50, 'position')
     data.buttons = [intButton, colButton, posButton]
+    data.writeCue = False
+    data.sequence = []
+    data.playCue = False
 
 def mousePressed(event, data):
     for button in data.buttons:
@@ -92,6 +96,12 @@ def allOff(data): # turn all lights off
 
 # gives an alternate way to control the lights besides LeapMotion
 def keyPressed(event, data):
+    if event.char == 'c':
+        data.writeCue = True
+    if event.char == 'g':
+        data.playCue = True
+        MySequence1.playSequence(data)
+        data.playCue = False
     light = data.lights[data.currentLight]
     if event.char == 'i': # intensity
         if light.intensity >= 127:
@@ -105,9 +115,6 @@ def keyPressed(event, data):
                 light.position[i] = 127
             else:
                 light.position[i] += 16
-    if event.keysym == 's':
-        print 'store'
-        storeCue(data)
     if event.keysym == 'space': # clear
         allOff(data)
     elif event.char == 'd':
@@ -116,7 +123,8 @@ def keyPressed(event, data):
         print 'quitting'
         allOff(data)
         del midiout
-    sendToLights(data)
+    if data.playCue = False:
+        sendToLights(data)
 
 def sendToLights(data):
     light = data.lights[data.currentLight]
@@ -134,12 +142,15 @@ def sendToLights(data):
     print msg
     for m in msg:
         data.midiout.send_message(m)
+    if data.writeCue:
+        data.sequence.append(writeCue(msg))
+        data.writeCue = False
 
 
 def timerFired(data):
     data.timesFired += 1
     light = data.lights[data.currentLight]
-    if data.timesFired % 5 == 0 and LeapHand.isHand(LeapHand, data):
+    if data.timesFired % 10 == 0 and LeapHand.isHand(LeapHand, data):
         if data.selection == 'intensity':
             distance = LeapHand.handDistance(LeapHand, data)[1]
             intensity = getIntensityFromDistance(distance)
@@ -155,7 +166,7 @@ def timerFired(data):
             pt = getPanTilt(lst, light.position) # find best position
             light.changePosition(pt)
         # print LeapHand.indexDirection(LeapHand, data)
-    
+
     if data.dim: # This is the replacement in case Leap Motion doesn't work
         for i in data.lights:
             light = data.lights[i]
@@ -169,7 +180,7 @@ def timerFired(data):
                 light.intensity = 0
             else:
                 light.intensity -= data.step
-    if data.timesFired % 20 == 0:
+    if data.timesFired % 10 == 0:
         sendToLights(data)
 
 
