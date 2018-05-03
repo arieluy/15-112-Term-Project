@@ -19,3 +19,7 @@ Run init.py. Lights can be added by clicking the buttons in the 'add new' column
 Lights can now be controlled by selecting the light, and selecting the attribute you would like to change. The text in the middle of the screen shows the values for the current light. After selecting 'intensity', raise and lower your hand over the Leap Motion to control the intensity value. After selecting 'color', raise your hand with your fingertips pointing towards the computer screen. Twist your wrist to fade through a rainbow of colors and select the color you want. After selecting 'position', point with your index finger in a direction, and the moving lights will match the direction. 
 
 To begin recording a sequence, press 'r'. Then change any lights that you want. To finish recording, press 'r' again. The sequence will appear with a number, click the number to play the sequence again. 
+
+### Acknowledgements
+
+Thanks to my mentor Lizzy and to AB Tech!

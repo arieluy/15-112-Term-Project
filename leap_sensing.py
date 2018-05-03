@@ -1,3 +1,5 @@
+# this file gets input from the Leap Motion and checks hand positions
+
 import sys, thread, time
 sys.path.insert(0, "../LeapDeveloperKit_2.3.1+31549_mac/LeapSDK/lib")
 import Leap
@@ -53,4 +55,35 @@ class LeapHand(object):
         frame = data.controller.frame()
         hand = frame.hands[0]
         return hand.palm_normal.roll
+
+    @staticmethod
+    def twoHands(self, data):
+        frame = data.controller.frame()
+        if len(frame.hands) >= 2:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def indexDirection2(self, data):
+        data.frame = data.controller.frame()
+        hand = data.frame.hands[0]
+        dirc = [1,1,1]
+        for finger in hand.fingers:
+            if finger.type == 1:
+                dirc = finger.direction
+        x = dirc[0]
+        y = dirc[1]
+        if x > 0.7 and abs(y) < 0.3:
+            return 'Right'
+        elif x < -0.7 and abs(y) < 0.3:
+            return 'Left'
+        elif abs(x) < 0.3 and y > 0.7:
+            return 'Up'
+        elif abs(x) < 0.3 and y < -0.7:
+            return 'Down'
+        else:
+            return None
+
+
 

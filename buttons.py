@@ -1,3 +1,5 @@
+# creates the Button class and defines functions related to buttons
+
 from Tkinter import *
 from lights import *
 

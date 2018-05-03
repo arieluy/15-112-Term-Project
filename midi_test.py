@@ -1,7 +1,9 @@
 print('Hello world!')
 
+# this is a test from https://github.com/superquadratic/rtmidi-python
+
 import time
-import rtmidi # https://github.com/superquadratic/rtmidi-python
+import rtmidi 
 midiout = rtmidi.MidiOut()
 available_ports = midiout.get_ports()
 

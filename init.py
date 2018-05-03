@@ -6,7 +6,7 @@ from leap_sensing import *
 from store_cues import *
 from calculations import *
 from buttons import *
-from sequences import *
+
 import sys, thread, time, math
 sys.path.insert(0, "../LeapDeveloperKit_2.3.1+31549_mac/LeapSDK/lib")
 import Leap # https://developer.leapmotion.com/sdk/v2/
@@ -27,7 +27,7 @@ def init(data):
     data.midiout = midiout
     data.timerDelay = 20
     data.lights = dict()
-    data.lights[1] = Light()
+    data.lights[1] = Intelligent()
     LeapHand.init(LeapHand, data)
     data.step = 1
     data.dim = False
@@ -43,10 +43,12 @@ def init(data):
     data.currentSequence = None
     data.nextSequence = 1
     data.circleBlink = False
+    data.selectMode = True
+    data.twoHands = False
 
 def mousePressed(event, data):
     inCategory = False
-    for button in data.buttons:
+    for button in data.buttons: # picks which attribute to control
         if button.isClicked(event):
             inCategory = True
     for button in data.buttons:
@@ -58,7 +60,7 @@ def mousePressed(event, data):
                 button.changeFill('white')
 
     inCategory = False
-    for button in data.lightButtons:
+    for button in data.lightButtons: # picks which light to control
         if button.isClicked(event):
             inCategory = True
     for button in data.lightButtons:
@@ -71,20 +73,18 @@ def mousePressed(event, data):
             else:
                 button.changeFill('white')
 
-    for button in data.sequenceButtons:
+    for button in data.sequenceButtons: # picks which sequence to play
         if button.isClicked(event):
             data.currentSequence = int(str(button))
             button.changeFill('cyan')
             data.playCue = True
-            # need to import here instead of the beginning because new files are created 
-            cmd = 'MySequence%d.playSequence(data)' % data.currentSequence
-            print cmd
-            exec(cmd)
+            file = 'MySequence%d.py' % data.currentSequence
+            execfile(file)
             data.playCue = False
             button.changeFill('white')
 
     newLight = None
-    for button in data.newButtons:
+    for button in data.newButtons: # creates new lights
         if button.isClicked(event):
             newLight = str(button)
     if newLight != None:
@@ -160,9 +160,9 @@ def keyPressed(event, data):
     if data.playCue == False:
         sendToLights(data)
 
+# this encodes the MIDI cues to send to control the lights
 def sendToLights(data):
     light = data.lights[data.currentLight]
-    print data.selection == 'intensity'
     if data.selection == 'intensity':
         msg = [[0x90, 1, light.intensity]]
     elif data.selection == 'color' and isinstance(light, Intelligent):
@@ -182,8 +182,33 @@ def sendToLights(data):
 
 def timerFired(data):
     data.timesFired += 1
+
+    if LeapHand.twoHands(LeapHand, data) != data.twoHands:
+        if not data.twoHands:
+            data.selectMode = not data.selectMode
+        data.twoHands = not data.twoHands
+
+    # you can select another attribute by bringing both of your hands into the frame
+    if data.selectMode:
+        if data.selection == 'intensity':
+            data.selection = 'position'
+            data.posButton.changeFill('yellow')
+            data.intButton.changeFill('white')
+            data.selectMode = False
+        elif data.selection == 'color':
+            data.selection = 'intensity'
+            data.intButton.changeFill('yellow')
+            data.colButton.changeFill('white')
+            data.selectMode = False
+        elif data.selection == 'position':
+            data.selection = 'color'
+            data.colButton.changeFill('yellow')
+            data.posButton.changeFill('white')
+            data.selectMode = False
+
+
     light = data.lights[data.currentLight]
-    if data.timesFired % 10 == 0 and LeapHand.isHand(LeapHand, data):
+    if (not data.selectMode) and data.timesFired % 10 == 0 and LeapHand.isHand(LeapHand, data):
         if data.selection == 'intensity':
             distance = LeapHand.handDistance(LeapHand, data)[1]
             intensity = getIntensityFromDistance(distance)
@@ -218,7 +243,6 @@ def timerFired(data):
 
     if data.timesFired % 10 == 0:
         sendToLights(data)
-
 
 
 def redrawAll(canvas, data):

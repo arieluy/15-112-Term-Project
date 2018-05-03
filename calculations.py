@@ -1,3 +1,5 @@
+# does all the calculations converting from hand positions to lighting
+
 import math
 
 def getIntensityFromDistance(distance):
@@ -57,6 +59,7 @@ def getPossiblePositions(pos):
     phi = math.degrees(math.atan2(x, z))
     return findAllPositions(phi, theta)
 
+# finds all positions of pan and tilt that are equivalent
 def findAllPositions(phi, theta):
     lst = [(phi, theta)]
     if phi + 360 <= 270:
@@ -69,6 +72,7 @@ def findAllPositions(phi, theta):
         lst.append([phi - 180, -theta])
     return lst
 
+# finds the best pan/tilt value from the list of all possible
 def getPanTilt(lst, pos):
     bestPosition = None
     bestDistance = 1000000

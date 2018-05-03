@@ -1,6 +1,8 @@
+# creates classes of lights that inherit from each other
+
 class Light(object):
     def __init__(self):
-        self.intensity = 1
+        self.intensity = 127
 
     def __repr__(self):
         return str(type(self))
