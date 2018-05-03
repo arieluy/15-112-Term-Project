@@ -5,26 +5,22 @@ def readFile(path):
 
 def writeFile(path, contents):
     with open(path, "wt") as f:
-        f.write(contents)
+        f.write(contents) 
 
-
-'''store = [0x91, 3, 127] # runs the 'store' command on grandMA2
-
-def storeCue(data):
-    data.midiout.send_message(store)'''
 
 def writeCue(msg):
     file = ''
-    # sleepTime = raw_input('Time: ')
-    sleepTime = 2
+    sleepTime = 0.2
     for m in msg:
         file += '\tdata.midiout.send_message(' + str(m) + ')\n'
-    file += '\ttime.sleep(%d) \n' % sleepTime
+    file += '\ttime.sleep(%2f) \n' % sleepTime
     return file
 
-def writeSequence(lst):
+def writeSequence(data):
     sequence = 'import time\ndef playSequence(data):\n'
-    for l in lst:
+    for l in data.sequence:
         sequence += l
-    writeFile('MySequence1.py', sequence)
+    filename = 'sequences/MySequence%d.py' % data.nextSequence
+    writeFile(filename, sequence)
+
 

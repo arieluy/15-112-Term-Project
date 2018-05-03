@@ -41,6 +41,10 @@ Leap Motion - This uses infrared light to detect hand position.
 
 No updates.
 
+#### TP3 Update ####
+
+No updates.
+
 ##### Notes #####
 
 Put color/pos/intensity faders on each of these pages and swap pages to switch between lights

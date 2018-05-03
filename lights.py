@@ -3,7 +3,7 @@ class Light(object):
         self.intensity = 1
 
     def __repr__(self):
-        return str(type(self)) + str(self.channel) + " at " + str(self.intensity)
+        return str(type(self))
 
     def changeIntensity(self, newIntensity):
         self.intensity = newIntensity

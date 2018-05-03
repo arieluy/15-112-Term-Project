@@ -1,7 +1,7 @@
 print('Hello world!')
 
 import time
-import rtmidi # from https://github.com/gostopa1/BachMC/blob/master/RunRealtime_dur_amp.py
+import rtmidi # https://github.com/superquadratic/rtmidi-python
 midiout = rtmidi.MidiOut()
 available_ports = midiout.get_ports()
 

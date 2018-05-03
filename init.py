@@ -1,11 +1,12 @@
 from __future__ import division
-import rtmidi # from https://github.com/gostopa1/BachMC/blob/master/RunRealtime_dur_amp.py
+import rtmidi # from https://github.com/superquadratic/rtmidi-python
 from lights import *
 from Tkinter import *
 from leap_sensing import *
 from store_cues import *
 from calculations import *
-import MySequence1
+from buttons import *
+from sequences import *
 import sys, thread, time, math
 sys.path.insert(0, "../LeapDeveloperKit_2.3.1+31549_mac/LeapSDK/lib")
 import Leap # https://developer.leapmotion.com/sdk/v2/
@@ -19,73 +20,99 @@ else:
     midiout.open_virtual_port("My virtual output")
     print "Virtual port opened"
 
-# wanted to put this in a separate file but couldn't get the import to work
-class Button(object): 
-    def __init__(self, x1, y1, x2, y2, label):
-        self.x1 = x1
-        self.y1 = y1
-        self.x2 = x2
-        self.y2 = y2
-        self.label = label
-        self.fill = 'white'
-
-    def __repr__(self):
-        return self.label
-
-    def draw(self, canvas):
-        canvas.create_rectangle(self.x1, self.y1, self.x2, self.y2, fill=self.fill)
-        canvas.create_text((self.x1 + self.x2)/2, (self.y1 + self.y2)/2, text=self.label)
-
-    def changeFill(self, newFill):
-        self.fill = newFill
-
-    def isClicked(self, event):
-        if (self.x1 <= event.x <= self.x2) and (self.y1 <= event.y <= self.y2):
-            return True
-        else:
-            return False
-
 #####################################################
 
 def init(data):
+    data.background = PhotoImage(file='concert.gif')
     data.midiout = midiout
+    data.timerDelay = 20
     data.lights = dict()
+    data.lights[1] = Light()
     LeapHand.init(LeapHand, data)
     data.step = 1
     data.dim = False
-    data.lights[1] = Light()
-    data.lights[2] = Moving()
-    data.lights[3] = Intelligent()
-    data.currentLight = 2
+    data.currentLight = 1
     data.selection = None # keeps track of which attribute is selected
     data.timesFired = 0
-    intButton = Button(20, 20, 100, 50, 'intensity')
-    colButton = Button(120, 20, 200, 50, 'color')
-    posButton = Button(220, 20, 300, 50, 'position')
-    data.buttons = [intButton, colButton, posButton]
+    buttonsInit(data)
     data.writeCue = False
     data.sequence = []
     data.playCue = False
+    data.nextNumber = 2
+    data.recording = False
+    data.currentSequence = None
+    data.nextSequence = 1
+    data.circleBlink = False
 
 def mousePressed(event, data):
+    inCategory = False
     for button in data.buttons:
         if button.isClicked(event):
-            button.changeFill('yellow')
-            data.selection = str(button)
-        else:
+            inCategory = True
+    for button in data.buttons:
+        if inCategory:
+            if button.isClicked(event):
+                button.changeFill('yellow')
+                data.selection = str(button)
+            else:
+                button.changeFill('white')
+
+    inCategory = False
+    for button in data.lightButtons:
+        if button.isClicked(event):
+            inCategory = True
+    for button in data.lightButtons:
+        if inCategory:
+            if button.isClicked(event):
+                button.changeFill('yellow')
+                oldLight = data.currentLight
+                data.currentLight = int(str(button))
+                switchLights(oldLight, data)
+            else:
+                button.changeFill('white')
+
+    for button in data.sequenceButtons:
+        if button.isClicked(event):
+            data.currentSequence = int(str(button))
+            button.changeFill('cyan')
+            data.playCue = True
+            # need to import here instead of the beginning because new files are created 
+            cmd = 'MySequence%d.playSequence(data)' % data.currentSequence
+            print cmd
+            exec(cmd)
+            data.playCue = False
             button.changeFill('white')
 
+    newLight = None
+    for button in data.newButtons:
+        if button.isClicked(event):
+            newLight = str(button)
+    if newLight != None:
+        k = len(data.lightButtons)
+        data.lightButtons.append(Button(20, 50+30*k, 100, 50+30*(k+1), data.nextNumber))
+    if newLight == 'light':
+        data.lights[data.nextNumber] = Light()
+        data.nextNumber += 1
+    elif newLight == 'intelligent':
+        data.lights[data.nextNumber] = Intelligent()
+        data.nextNumber += 1
+    elif newLight == 'moving':
+        data.lights[data.nextNumber] = Moving()
+        data.nextNumber += 1
+    
 
-''' # need to work on this feature more
-    # switch between lights
+# switch which light you are controlling
+def switchLights(oldLight, data):
     fd_plus = [0x91, 1, 127]
     fd_minus = [0x91, 2, 127]
-    if data.currentLight == 1:
-        data.currentLight = 2
-        data.midiout.send_message(fd_plus)
-    elif data.currentLight == 2:
-        data.currentLight = 1
-        data.midiout.send_message(fd_minus)'''
+    d = data.currentLight - oldLight
+    if d > 0:
+        for i in range(d):
+            data.midiout.send_message(fd_plus)
+    elif d < 0:
+        for i in range(abs(d)):
+            data.midiout.send_message(fd_minus)
+
 
 def allOff(data): # turn all lights off
     for i in data.lights:
@@ -96,8 +123,15 @@ def allOff(data): # turn all lights off
 
 # gives an alternate way to control the lights besides LeapMotion
 def keyPressed(event, data):
-    if event.char == 'c':
-        data.writeCue = True
+    if event.char == 'r':
+        k = len(data.sequenceButtons)
+        if data.recording:
+            writeSequence(data)
+            data.sequenceButtons.append(Button(800, 50+30*k, 880, 50+30*(k+1), data.nextSequence))
+            data.recording = False
+            data.nextSequence += 1
+        elif k < 9:
+            data.recording = True
     if event.char == 'g':
         data.playCue = True
         MySequence1.playSequence(data)
@@ -122,8 +156,8 @@ def keyPressed(event, data):
     elif event.char == 'q':
         print 'quitting'
         allOff(data)
-        del midiout
-    if data.playCue = False:
+        del data.midiout
+    if data.playCue == False:
         sendToLights(data)
 
 def sendToLights(data):
@@ -142,9 +176,8 @@ def sendToLights(data):
     print msg
     for m in msg:
         data.midiout.send_message(m)
-    if data.writeCue:
+    if data.recording:
         data.sequence.append(writeCue(msg))
-        data.writeCue = False
 
 
 def timerFired(data):
@@ -168,35 +201,42 @@ def timerFired(data):
         # print LeapHand.indexDirection(LeapHand, data)
 
     if data.dim: # This is the replacement in case Leap Motion doesn't work
-        for i in data.lights:
-            light = data.lights[i]
-            if light.intensity >= 127:
-                data.increasing = False
-            elif light.intensity <= 0:
-                data.increasing = True
-            if data.increasing:
-                light.intensity += data.step
-            elif light.intensity <= 1:
-                light.intensity = 0
-            else:
-                light.intensity -= data.step
+        light = data.lights[data.currentLight]
+        if light.intensity >= 127:
+            data.increasing = False
+        elif light.intensity <= 0:
+            data.increasing = True
+        if data.increasing:
+            light.intensity += data.step
+        elif light.intensity <= 1:
+            light.intensity = 0
+        else:
+            light.intensity -= data.step
+
+    if data.timesFired % 8 == 0:
+        data.circleBlink = not data.circleBlink
+
     if data.timesFired % 10 == 0:
         sendToLights(data)
 
 
 
 def redrawAll(canvas, data):
-    for button in data.buttons:
-        button.draw(canvas)
-    for i in data.lights:
-        light = data.lights[i]
-        offset = 50*(i-1)
-        capt = 'intensity: %d' % (light.intensity)
-        if isinstance(light, Intelligent):
-            capt += ' color: (%d, %d, %d)' % (light.color[0], light.color[1], light.color[2])
-        if isinstance(light, Moving):
-            capt += ' pan: %d tilt: %d' % (light.position[0], light.position[1])
-        canvas.create_text(data.width/2, data.height/2 + offset, text=capt)
+    canvas.create_image(0, 0, image=data.background, anchor='nw')
+    canvas.create_text(450, 200, text='15-112 Term Project', font='Arial 36 bold', fill='white')
+    canvas.create_text(450, 250, text='Ariel Uy', font='Arial 20', fill='white')
+    if data.recording:
+        canvas.create_text(730, 35, text='RECORDING', font='Arial 10', fill='white')
+        if data.circleBlink:
+            canvas.create_oval(770, 30, 780, 40, fill='red')
+    drawButtons(canvas, data)
+    light = data.lights[data.currentLight]
+    capt = 'intensity: %d' % (light.intensity)
+    if isinstance(light, Intelligent):
+        capt += ' color: (%d, %d, %d)' % (light.color[0], light.color[1], light.color[2])
+    if isinstance(light, Moving):
+        capt += ' pan: %d tilt: %d' % (light.position[0], light.position[1])
+    canvas.create_text(data.width/2, data.height/2, text=capt, fill='white')
 
 
 
@@ -230,7 +270,7 @@ def run(width=300, height=300):
     data = Struct()
     data.width = width
     data.height = height
-    data.timerDelay = 20
+    data.timerDelay = 100
     root = Tk()
     init(data)
     # create the root and the canvas
@@ -247,4 +287,4 @@ def run(width=300, height=300):
     root.mainloop()  # blocks until window is closed
     print("bye!")
 
-run(600, 600)
+run(900, 600)
